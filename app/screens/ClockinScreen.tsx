@@ -318,11 +318,11 @@ export const ClockInScreen: FC<ClockInScreenProps> = observer(function ClockInSc
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.lightBackground, // Light background color
+    backgroundColor: colors.lightBackground,
     padding: 10,
   },
   header: {
-    backgroundColor: colors.lightGreen, // Light green color for header
+    backgroundColor: colors.lightGreen,
     padding: 15,
   },
   dateText: {
@@ -398,7 +398,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
-    marginTop: 100, // Move modal lower
+    marginTop: 100,
   },
   closeButton: {
     position: "absolute",
