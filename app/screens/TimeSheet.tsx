@@ -19,7 +19,7 @@ export const TimeSheetScreen: FC<TimeSheetScreenProps> = observer(function TimeS
   const startOfMonth = currentDate.clone().startOf('month');
   const currentWeekOfMonth = Math.ceil(currentDate.diff(startOfMonth, 'days') / 7) + 1;
   const startOfWeek = currentDate.clone().startOf('week');
-  const daysOfWeek = Array.from({ length: 7 }, (v, i) => startOfWeek.clone().add(i, 'days'));
+  const daysOfWeek = Array.from({ length: 7 }, (v, i) => startOfWeek.clone().add(i, 'days')).filter(day => day.isoWeekday() < 6); // Monday to Friday
 
   const [dayRecords, setDayRecords] = useState<DayRecord[]>([]);
 
@@ -37,27 +37,36 @@ export const TimeSheetScreen: FC<TimeSheetScreenProps> = observer(function TimeS
     loadDayRecords();
   }, [daysOfWeek]);
 
-  const renderDay = ({ item }: { item: DayRecord }) => (
-    <TouchableOpacity
-      style={styles.dayContainer}
-      onPress={() => navigation.navigate('ClockInScreen', { date: item.date })}
-    >
-      <View style={styles.dayRow}>
-        <Text preset="default" style={styles.dayName}>{moment(item.date).format('dddd')}</Text>
-        <Text style={styles.dayDate}>{moment(item.date).format('MMMM D')}</Text>
-      </View>
-      <View style={styles.timeRow}>
-        <Text style={styles.timeText}>Clock In: {item.clockInTime || '-'}</Text>
-        <Text style={styles.timeText}>Clock Out: {item.clockOutTime || '-'}</Text>
-      </View>
-    </TouchableOpacity>
-  );
+  const renderDay = ({ item }: { item: DayRecord }) => {
+    const isCurrentDay = moment().isSame(item.date, 'day');
+    return (
+      <TouchableOpacity
+        style={[styles.dayContainer, !isCurrentDay && styles.disabledContainer]}
+        onPress={() => {
+          if (isCurrentDay) {
+            navigation.navigate('ClockInScreen', { date: item.date });
+          }
+        }}
+        disabled={!isCurrentDay}
+      >
+        <View style={styles.dayRow}>
+          <Text preset="subheading" style={styles.dayName}>{moment(item.date).format('dddd')}</Text>
+          <Text style={styles.dayDate}>{moment(item.date).format('MMMM D')}</Text>
+        </View>
+        <View style={styles.timeRow}>
+          <Text style={styles.timeText}>Clock In: {item.clockInTime ? moment(item.clockInTime, 'HH:mm:ss').format('h:mm A') : '-'}</Text>
+          <Text style={styles.timeText}>Clock Out: {item.clockOutTime ? moment(item.clockOutTime, 'HH:mm:ss').format('h:mm A') : '-'}</Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <Screen style={styles.container}>
       <Header
         title={`Week ${currentWeekOfMonth}`}
         titleMode="flex"
+        titleStyle={{ color: '#fff', marginRight: "auto" }}
         rightText={`${startOfWeek.format('MMMM D')} - ${startOfWeek.clone().add(6, 'days').format('MMMM D')}`}
         style={styles.header}
       />
@@ -100,6 +109,9 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 3,
   },
+  disabledContainer: {
+    backgroundColor: '#e0e0e0', // Light gray for disabled
+  },
   dayRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -119,7 +131,7 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   timeText: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#333',
   },
 });
