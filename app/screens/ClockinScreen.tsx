@@ -11,7 +11,7 @@ interface ClockInScreenProps extends AppStackScreenProps<"ClockInScreen"> {}
 
 interface Break {
   start: string
-  end: string
+  end: string | null
   note: string
 }
 
@@ -25,7 +25,6 @@ export const ClockInScreen: FC<ClockInScreenProps> = observer(function ClockInSc
   const [breaks, setBreaks] = useState<Break[]>([])
   const [isModalVisible, setModalVisible] = useState(false)
   const [breakNote, setBreakNote] = useState("")
-  const [breakStartTime, setBreakStartTime] = useState<string | null>(null)
   const [showLateAlert, setShowLateAlert] = useState(false)
   const expectedClockInTime = moment(date).set({ hour: 9, minute: 0, second: 0 }).format("HH:mm")
   const expectedClockOutTime = moment(date).set({ hour: 17, minute: 0, second: 0 }).format("HH:mm")
@@ -91,20 +90,34 @@ export const ClockInScreen: FC<ClockInScreenProps> = observer(function ClockInSc
   }
 
   const handleTakeBreak = () => {
-    setBreakStartTime(moment().format("HH:mm:ss"))
     setModalVisible(true)
   }
 
   const handleSaveBreak = async () => {
     const newBreak: Break = {
-      start: breakStartTime!,
-      end: moment().format("HH:mm:ss"),
+      start: moment().format("HH:mm:ss"),
+      end: null,
       note: breakNote,
     }
     const updatedBreaks = [...breaks, newBreak]
     setBreaks(updatedBreaks)
-    setModalVisible(false)
     setBreakNote("")
+    setModalVisible(false)
+    try {
+      await AsyncStorage.setItem(`breaks_${date}`, JSON.stringify(updatedBreaks))
+    } catch (e) {
+      Alert.alert("Error", "Failed to save break")
+    }
+  }
+
+  const handleEndBreak = async () => {
+    const updatedBreaks = breaks.map((breakItem, index) => {
+      if (index === breaks.length - 1 && breakItem.end === null) {
+        return { ...breakItem, end: moment().format("HH:mm:ss") }
+      }
+      return breakItem
+    })
+    setBreaks(updatedBreaks)
     try {
       await AsyncStorage.setItem(`breaks_${date}`, JSON.stringify(updatedBreaks))
     } catch (e) {
@@ -130,7 +143,17 @@ export const ClockInScreen: FC<ClockInScreenProps> = observer(function ClockInSc
     if (clockInTime && clockOutTime) {
       const clockInMoment = moment(clockInTime, 'HH:mm:ss')
       const clockOutMoment = moment(clockOutTime, 'HH:mm:ss')
-      const duration = moment.duration(clockOutMoment.diff(clockInMoment))
+      let duration = moment.duration(clockOutMoment.diff(clockInMoment))
+
+      breaks.forEach(breakItem => {
+        if (breakItem.start && breakItem.end) {
+          const breakStartMoment = moment(breakItem.start, 'HH:mm:ss')
+          const breakEndMoment = moment(breakItem.end, 'HH:mm:ss')
+          const breakDuration = moment.duration(breakEndMoment.diff(breakStartMoment))
+          duration = duration.subtract(breakDuration)
+        }
+      })
+
       const hours = Math.floor(duration.asHours())
       const minutes = Math.floor(duration.asMinutes() % 60)
       return `${hours}h ${minutes}m`
@@ -138,8 +161,10 @@ export const ClockInScreen: FC<ClockInScreenProps> = observer(function ClockInSc
     return "-"
   }
 
+  const currentActiveBreak = breaks.find(breakItem => breakItem.end === null);
+
   return (
-    <Screen style={styles.container}>
+    <Screen preset="scroll" style={styles.container}>
       <Header
         title={`Clock In/Out`}
         titleStyle={{ color: colors.white }}
@@ -175,8 +200,8 @@ export const ClockInScreen: FC<ClockInScreenProps> = observer(function ClockInSc
       <Text style={styles.timeText}>Clock Out Time: {clockOutTime ? moment(clockOutTime, 'HH:mm:ss').format('h:mm A') : "-"}</Text>
       <Text style={styles.timeText}>Total Working Hours: {calculateWorkingHours()}</Text>
       <Button
-        text="Take a Break"
-        onPress={handleTakeBreak}
+        text={currentActiveBreak ? "End Break" : "Take a Break"}
+        onPress={currentActiveBreak ? handleEndBreak : handleTakeBreak}
         disabled={!clockInTime || !!clockOutTime}
         style={styles.button}
         textStyle={{ color: colors.white }}
@@ -187,10 +212,10 @@ export const ClockInScreen: FC<ClockInScreenProps> = observer(function ClockInSc
         {breaks.map((breakItem, index) => (
           <View key={index} style={styles.breakItem}>
             <Text style={styles.breakText}>Break {index + 1}</Text>
+            <Text style={styles.breakNote}>Note: {breakItem.note}</Text>
             <View style={styles.breakDetails}>
-              <Text style={styles.breakDetail}>Start: {moment(breakItem.start, 'HH:mm:ss').format('h:mm:ss A')}</Text>
-              <Text style={styles.breakDetail}>End: {moment(breakItem.end, 'HH:mm:ss').format('h:mm:ss A')}</Text>
-              <Text style={styles.breakDetail}>Note: {breakItem.note}</Text>
+              <Text style={styles.breakDetail}>Start: {moment(breakItem.start, 'HH:mm:ss').format('h:mm A')}</Text>
+              <Text style={styles.breakDetail}>End: {breakItem.end ? moment(breakItem.end, 'HH:mm:ss').format('h:mm A') : "-"}</Text>
             </View>
           </View>
         ))}
@@ -234,11 +259,11 @@ export const ClockInScreen: FC<ClockInScreenProps> = observer(function ClockInSc
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.lightBackground,
+    backgroundColor: colors.lightBackground, // Light background color
     padding: 10,
   },
   header: {
-    backgroundColor: colors.lightGreen,
+    backgroundColor: colors.lightGreen, // Light green color for header
     padding: 15,
   },
   dateText: {
@@ -284,6 +309,12 @@ const styles = StyleSheet.create({
     color: colors.darkText,
     marginBottom: 5,
   },
+  breakNote: {
+    fontSize: 14,
+    color: colors.darkText,
+    marginBottom: 5,
+    textAlign: "left",
+  },
   breakDetails: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -307,7 +338,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
-    marginTop: 100,
+    marginTop: 100, // Move modal lower
   },
   closeButton: {
     position: "absolute",
@@ -334,6 +365,8 @@ const styles = StyleSheet.create({
   },
   button: {
     padding: 10,
+    marginTop: 20,
+    marginBottom: 30,
     backgroundColor: colors.lightGreen,
   },
   disabledButton: {
