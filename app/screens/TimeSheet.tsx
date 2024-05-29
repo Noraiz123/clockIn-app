@@ -5,6 +5,7 @@ import { AppStackScreenProps } from "../navigators"
 import { Screen, Header, Text } from "../components"
 import moment from "moment"
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import colors from "../constants/colors"
 
 interface TimeSheetScreenProps extends AppStackScreenProps<"TimeSheet"> {}
 
@@ -66,7 +67,7 @@ export const TimeSheetScreen: FC<TimeSheetScreenProps> = observer(function TimeS
       <Header
         title={`Week ${currentWeekOfMonth}`}
         titleMode="flex"
-        titleStyle={{ color: '#fff', marginRight: "auto" }}
+        titleStyle={{ color: colors.white, marginRight: "auto" }}
         rightText={`${startOfWeek.format('MMMM D')} - ${startOfWeek.clone().add(6, 'days').format('MMMM D')}`}
         style={styles.header}
       />
@@ -83,34 +84,34 @@ export const TimeSheetScreen: FC<TimeSheetScreenProps> = observer(function TimeS
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5', // Light background color
+    backgroundColor: colors.lightBackground, // Light background color
     padding: 10,
   },
   header: {
-    backgroundColor: '#4caf50', // Light green color for header
+    backgroundColor: colors.lightGreen, // Light green color for header
     padding: 15,
   },
   heading: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#333', // Darker color for text
+    color: colors.darkText, // Darker color for text
     marginBottom: 20,
     marginTop: 20,
     textAlign: 'center',
   },
   dayContainer: {
-    backgroundColor: '#fff', // White background for cards
+    backgroundColor: colors.white, // White background for cards
     padding: 15,
     marginBottom: 10,
     borderRadius: 10,
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 5,
     elevation: 3,
   },
   disabledContainer: {
-    backgroundColor: '#e0e0e0', // Light gray for disabled
+    backgroundColor: colors.lightGray, // Light gray for disabled
   },
   dayRow: {
     flexDirection: 'row',
@@ -118,11 +119,11 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   dayName: {
-    color: '#333', // Darker color for text
+    color: colors.darkText, // Darker color for text
     fontSize: 18,
   },
   dayDate: {
-    color: '#888', // Grey color for secondary text
+    color: colors.grayText, // Grey color for secondary text
     fontSize: 14,
   },
   timeRow: {
@@ -132,6 +133,6 @@ const styles = StyleSheet.create({
   },
   timeText: {
     fontSize: 16,
-    color: '#333',
+    color: colors.darkText,
   },
-});
+})
