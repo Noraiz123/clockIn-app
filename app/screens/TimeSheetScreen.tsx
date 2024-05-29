@@ -84,23 +84,23 @@ export const TimeSheetScreen: FC<TimeSheetScreenProps> = observer(function TimeS
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.lightBackground, // Light background color
+    backgroundColor: colors.lightBackground,
     padding: 10,
   },
   header: {
-    backgroundColor: colors.lightGreen, // Light green color for header
+    backgroundColor: colors.lightGreen,
     padding: 15,
   },
   heading: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: colors.darkText, // Darker color for text
+    color: colors.darkText,
     marginBottom: 20,
     marginTop: 20,
     textAlign: 'center',
   },
   dayContainer: {
-    backgroundColor: colors.white, // White background for cards
+    backgroundColor: colors.white,
     padding: 15,
     marginBottom: 10,
     borderRadius: 10,
@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   disabledContainer: {
-    backgroundColor: colors.lightGray, // Light gray for disabled
+    backgroundColor: colors.lightGray,
   },
   dayRow: {
     flexDirection: 'row',
@@ -119,11 +119,11 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   dayName: {
-    color: colors.darkText, // Darker color for text
+    color: colors.darkText,
     fontSize: 18,
   },
   dayDate: {
-    color: colors.grayText, // Grey color for secondary text
+    color: colors.grayText,
     fontSize: 14,
   },
   timeRow: {
