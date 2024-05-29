@@ -20,6 +20,8 @@ import { useStores } from "../models"
 import { DemoNavigator, DemoTabParamList } from "./DemoNavigator"
 import { navigationRef, useBackButtonHandler } from "./navigationUtilities"
 import { colors } from "app/theme"
+import { TimeSheetScreen } from "app/screens/TimeSheet"
+import { ClockInScreen } from "app/screens/ClockinScreen"
 
 /**
  * This type allows TypeScript to know what routes are defined in this navigator
@@ -37,6 +39,10 @@ import { colors } from "app/theme"
 export type AppStackParamList = {
   Welcome: undefined
   Login: undefined
+  TimeSheet: undefined
+  ClockInScreen: {
+    date: string
+  }
   Demo: NavigatorScreenParams<DemoTabParamList>
   // 🔥 Your screens go here
   // IGNITE_GENERATOR_ANCHOR_APP_STACK_PARAM_LIST
@@ -64,13 +70,15 @@ const AppStack = observer(function AppStack() {
   return (
     <Stack.Navigator
       screenOptions={{ headerShown: false, navigationBarColor: colors.background }}
-      initialRouteName={isAuthenticated ? "Welcome" : "Login"}
+      initialRouteName={isAuthenticated ? "TimeSheet" : "Login"}
     >
       {isAuthenticated ? (
         <>
-          <Stack.Screen name="Welcome" component={Screens.WelcomeScreen} />
+          {/* <Stack.Screen name="Welcome" component={Screens.WelcomeScreen} /> */}
 
-          <Stack.Screen name="Demo" component={DemoNavigator} />
+          {/* <Stack.Screen name="Demo" component={DemoNavigator} /> */}
+          <Stack.Screen name="TimeSheet" component={TimeSheetScreen} />
+          <Stack.Screen name="ClockInScreen" component={ClockInScreen} />
         </>
       ) : (
         <>
