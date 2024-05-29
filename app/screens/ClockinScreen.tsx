@@ -1,5 +1,5 @@
 import { observer } from "mobx-react-lite"
-import React, { FC, useState, useEffect } from "react"
+import React, { FC, useState, useEffect, useRef } from "react"
 import { View, StyleSheet, Alert, Modal, TextInput, TouchableOpacity } from "react-native"
 import { Screen, Header, Text, Button } from "../components"
 import moment from "moment"
@@ -26,6 +26,8 @@ export const ClockInScreen: FC<ClockInScreenProps> = observer(function ClockInSc
   const [isModalVisible, setModalVisible] = useState(false)
   const [breakNote, setBreakNote] = useState("")
   const [showLateAlert, setShowLateAlert] = useState(false)
+  const [timer, setTimer] = useState(0)
+  const timerInterval = useRef<NodeJS.Timeout | null>(null)
   const expectedClockInTime = moment(date).set({ hour: 9, minute: 0, second: 0 }).format("HH:mm")
   const expectedClockOutTime = moment(date).set({ hour: 17, minute: 0, second: 0 }).format("HH:mm")
 
@@ -44,6 +46,32 @@ export const ClockInScreen: FC<ClockInScreenProps> = observer(function ClockInSc
     }
     loadTimes()
   }, [date])
+
+  const currentActiveBreak = breaks.find((breakItem) => breakItem.end === null)
+
+  useEffect(() => {
+    if (clockInTime && !clockOutTime && !currentActiveBreak) {
+      startTimer()
+    } else {
+      stopTimer()
+    }
+
+    return () => stopTimer()
+  }, [clockInTime, clockOutTime, currentActiveBreak])
+
+  const startTimer = () => {
+    if (timerInterval.current) return
+    timerInterval.current = setInterval(() => {
+      setTimer((prevTimer) => prevTimer + 1)
+    }, 1000)
+  }
+
+  const stopTimer = () => {
+    if (timerInterval.current) {
+      clearInterval(timerInterval.current)
+      timerInterval.current = null
+    }
+  }
 
   const handleClockIn = async () => {
     const time = moment().format("HH:mm:ss")
@@ -77,7 +105,7 @@ export const ClockInScreen: FC<ClockInScreenProps> = observer(function ClockInSc
               }
             },
           },
-        ]
+        ],
       )
     } else {
       setClockOutTime(time)
@@ -130,6 +158,7 @@ export const ClockInScreen: FC<ClockInScreenProps> = observer(function ClockInSc
     setClockOutTime(null)
     setShowLateAlert(false)
     setBreaks([])
+    setTimer(0)
     try {
       await AsyncStorage.removeItem(`clockIn_${date}`)
       await AsyncStorage.removeItem(`clockOut_${date}`)
@@ -141,14 +170,14 @@ export const ClockInScreen: FC<ClockInScreenProps> = observer(function ClockInSc
 
   const calculateWorkingHours = () => {
     if (clockInTime && clockOutTime) {
-      const clockInMoment = moment(clockInTime, 'HH:mm:ss')
-      const clockOutMoment = moment(clockOutTime, 'HH:mm:ss')
+      const clockInMoment = moment(clockInTime, "HH:mm:ss")
+      const clockOutMoment = moment(clockOutTime, "HH:mm:ss")
       let duration = moment.duration(clockOutMoment.diff(clockInMoment))
 
-      breaks.forEach(breakItem => {
+      breaks.forEach((breakItem) => {
         if (breakItem.start && breakItem.end) {
-          const breakStartMoment = moment(breakItem.start, 'HH:mm:ss')
-          const breakEndMoment = moment(breakItem.end, 'HH:mm:ss')
+          const breakStartMoment = moment(breakItem.start, "HH:mm:ss")
+          const breakEndMoment = moment(breakItem.end, "HH:mm:ss")
           const breakDuration = moment.duration(breakEndMoment.diff(breakStartMoment))
           duration = duration.subtract(breakDuration)
         }
@@ -161,7 +190,14 @@ export const ClockInScreen: FC<ClockInScreenProps> = observer(function ClockInSc
     return "-"
   }
 
-  const currentActiveBreak = breaks.find(breakItem => breakItem.end === null);
+  const formatTimer = () => {
+    const hours = Math.floor(timer / 3600)
+    const minutes = Math.floor((timer % 3600) / 60)
+    const seconds = timer % 60
+    return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds
+      .toString()
+      .padStart(2, "0")}`
+  }
 
   return (
     <Screen preset="scroll" style={styles.container}>
@@ -173,9 +209,18 @@ export const ClockInScreen: FC<ClockInScreenProps> = observer(function ClockInSc
         onLeftPress={() => navigation.goBack()}
       />
       <Text style={styles.dateText}>{moment(date).format("dddd, MMMM D, YYYY")}</Text>
-      <Text style={styles.timeText}>Expected Clock In Time: {moment(expectedClockInTime, 'HH:mm:ss').format('h:mm A')}</Text>
-      <Text style={styles.timeText}>Expected Clock Out Time: {moment(expectedClockOutTime, 'HH:mm:ss').format('h:mm A')}</Text>
-      {showLateAlert && <Text style={styles.lateAlert}>You are late by {moment().diff(moment(expectedClockInTime, 'HH:mm:ss'), 'minutes')} minutes!</Text>}
+      <Text style={styles.timeText}>
+        Expected Clock In Time: {moment(expectedClockInTime, "HH:mm:ss").format("h:mm A")}
+      </Text>
+      <Text style={styles.timeText}>
+        Expected Clock Out Time: {moment(expectedClockOutTime, "HH:mm:ss").format("h:mm A")}
+      </Text>
+      {showLateAlert && (
+        <Text style={styles.lateAlert}>
+          You are late by {moment().diff(moment(expectedClockInTime, "HH:mm:ss"), "minutes")}{" "}
+          minutes!
+        </Text>
+      )}
       <View style={styles.buttonContainer}>
         <Button
           text="Clock In"
@@ -196,8 +241,13 @@ export const ClockInScreen: FC<ClockInScreenProps> = observer(function ClockInSc
           disabledTextStyle={{ color: colors.darkText }}
         />
       </View>
-      <Text style={styles.timeText}>Clock In Time: {clockInTime ? moment(clockInTime, 'HH:mm:ss').format('h:mm A') : "-"}</Text>
-      <Text style={styles.timeText}>Clock Out Time: {clockOutTime ? moment(clockOutTime, 'HH:mm:ss').format('h:mm A') : "-"}</Text>
+      <Text style={styles.timeText}>Current Timer: {clockInTime ? formatTimer() : "--:--:--"}</Text>
+      <Text style={styles.timeText}>
+        Clock In Time: {clockInTime ? moment(clockInTime, "HH:mm:ss").format("h:mm A") : "-"}
+      </Text>
+      <Text style={styles.timeText}>
+        Clock Out Time: {clockOutTime ? moment(clockOutTime, "HH:mm:ss").format("h:mm A") : "-"}
+      </Text>
       <Text style={styles.timeText}>Total Working Hours: {calculateWorkingHours()}</Text>
       <Button
         text={currentActiveBreak ? "End Break" : "Take a Break"}
@@ -209,22 +259,31 @@ export const ClockInScreen: FC<ClockInScreenProps> = observer(function ClockInSc
         disabledTextStyle={{ color: colors.darkText }}
       />
       <View style={styles.breaksContainer}>
-        {breaks.map((breakItem, index) => (
-          <View key={index} style={styles.breakItem}>
-            <Text style={styles.breakText}>Break {index + 1}</Text>
-            <Text style={styles.breakNote}>Note: {breakItem.note}</Text>
-            <View style={styles.breakDetails}>
-              <Text style={styles.breakDetail}>Start: {moment(breakItem.start, 'HH:mm:ss').format('h:mm A')}</Text>
-              <Text style={styles.breakDetail}>End: {breakItem.end ? moment(breakItem.end, 'HH:mm:ss').format('h:mm A') : "-"}</Text>
+        <Text preset="subheading">Breaks</Text>
+        {breaks.length > 0 ? (
+          breaks.map((breakItem, index) => (
+            <View key={index} style={styles.breakItem}>
+              <Text style={styles.breakText}>Break {index + 1}</Text>
+              <Text style={styles.breakNote}>Note: {breakItem.note}</Text>
+              <View style={styles.breakDetails}>
+                <Text style={styles.breakDetail}>
+                  Start: {moment(breakItem.start, "HH:mm:ss").format("h:mm A")}
+                </Text>
+                <Text style={styles.breakDetail}>
+                  End: {breakItem.end ? moment(breakItem.end, "HH:mm:ss").format("h:mm A") : "-"}
+                </Text>
+              </View>
             </View>
-          </View>
-        ))}
+          ))
+        ) : (
+          <Text preset="default">No breaks taken</Text>
+        )}
       </View>
       <Button
         text="Clear Today's Record"
         onPress={handleClearRecord}
         textStyle={{ color: colors.white }}
-        style={styles.button}
+        style={styles.clearBtn}
       />
       <Modal
         animationType="slide"
@@ -334,7 +393,8 @@ const styles = StyleSheet.create({
     shadowColor: colors.black,
     shadowOffset: {
       width: 0,
-      height: 2 },
+      height: 2,
+    },
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
@@ -365,8 +425,12 @@ const styles = StyleSheet.create({
   },
   button: {
     padding: 10,
+    backgroundColor: colors.lightGreen,
+  },
+  clearBtn: {
+    padding: 10,
     marginTop: 20,
-    marginBottom: 30,
+    marginBottom: 60,
     backgroundColor: colors.lightGreen,
   },
   disabledButton: {
