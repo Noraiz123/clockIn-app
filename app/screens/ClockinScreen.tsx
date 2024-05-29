@@ -210,10 +210,10 @@ export const ClockInScreen: FC<ClockInScreenProps> = observer(function ClockInSc
       />
       <Text style={styles.dateText}>{moment(date).format("dddd, MMMM D, YYYY")}</Text>
       <Text style={styles.timeText}>
-        Expected Clock In Time: {moment(expectedClockInTime, "HH:mm:ss").format("h:mm A")}
+        Expected Clock In: {moment(expectedClockInTime, "HH:mm:ss").format("h:mm A")}
       </Text>
       <Text style={styles.timeText}>
-        Expected Clock Out Time: {moment(expectedClockOutTime, "HH:mm:ss").format("h:mm A")}
+        Expected Clock Out: {moment(expectedClockOutTime, "HH:mm:ss").format("h:mm A")}
       </Text>
       {showLateAlert && (
         <Text style={styles.lateAlert}>
